@@ -26,3 +26,8 @@ notes/
 # Third-party design reference (aura.build template), kept local
 Cyber Security Dashboard UI Template*/
 Cyber Security Dashboard UI Template*.html
+
+# Frontend (React/Vite)
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
