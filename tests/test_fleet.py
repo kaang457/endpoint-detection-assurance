@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from eda.fleet import Fleet
 from eda.harness import run
+from eda.live import LiveCampaign
 
 
 def _small_fleet() -> Fleet:
@@ -63,3 +64,18 @@ def test_app_log_holds_requests_but_no_host_effects():
     h3 = report["applog_blindness_h3"]
     assert h3["requests_logged"] >= 1
     assert h3["host_effects_in_app_log"] == 0
+
+
+def test_fleet_view_marks_a_silent_breach_and_leaves_bystanders_nominal():
+    # The fleet view is only meaningful if the kill chain lights up a path while
+    # the untargeted majority stays quiet, and if a host breached with no alarm
+    # is flagged "silent" rather than looking the same as one that alerted.
+    campaign = LiveCampaign({"edge-web": 1, "workstation": 2, "app": 1, "db": 1})
+    campaign.fire_all()
+    agents = {a["id"]: a for a in campaign.fleet_agents()}
+    campaign.close()
+
+    assert agents["db-01"]["status"] == "silent"          # exfil after blinding
+    assert agents["edge-web-01"]["status"] == "alerting"   # alarms fired, no blind step
+    assert agents["workstation-02"]["status"] == "nominal"  # never attacked
+    assert agents["workstation-02"]["on_path"] is False

@@ -21,6 +21,24 @@ from .scenarios import AttackStep, StepContext, build_killchain
 from .scoring import Scoreboard, StepResult, capability_matrix
 
 
+def _agent_status(steps: list[dict]) -> str:
+    """A VM's state, worst-case over the attack steps that targeted it. The order
+    matters: a host where the attack went unseen ("silent") outranks one that
+    merely raised alerts, because an undetected breach is the dangerous state."""
+    if not steps:
+        return "nominal"
+    outcomes = {s["outcome"] for s in steps if s["fired"]}
+    if not outcomes:
+        return "targeted"
+    if "blind" in outcomes:
+        return "silent"
+    if "detected" in outcomes:
+        return "alerting"
+    if "visible_only" in outcomes:
+        return "observed"
+    return "targeted"
+
+
 class LiveCampaign:
     """One running fleet plus the ordered kill chain, fired on demand."""
 
@@ -82,7 +100,44 @@ class LiveCampaign:
             },
             "applog_blindness_h3": board.h3_applog_blindness(),
             "capability_matrix_h1": capability_matrix([s for _a, s in self.ordered]),
+            "agents": self.fleet_agents(),
+            "subnets": self._subnet_order(),
         }
+
+    def fleet_agents(self) -> list[dict]:
+        """One record per simulated VM, with the state the fleet view shows: its
+        role and sensors, how much telemetry it has produced, and the worst thing
+        the attack did to it. Most hosts stay nominal; the kill chain lights up a
+        path, and a host breached with no alarm is the state that matters."""
+        targeted: dict[str, list[str]] = {}
+        for agent, step in self.ordered:
+            targeted.setdefault(agent.id, []).append(step.id)
+        agents = []
+        for agent in self.fleet.agents:
+            steps = [self._step_view(sid) for sid in targeted.get(agent.id, [])]
+            agents.append({
+                "id": agent.id,
+                "role": agent.role.name,
+                "subnet": agent.subnet,
+                "workload": agent.workload,
+                "sensors": list(agent.role.sensors),
+                "events": len(agent.node.events),
+                "alerts": len(agent.node.alerts),
+                "on_path": bool(steps),
+                "status": _agent_status(steps),
+                "steps": steps,
+            })
+        return agents
+
+    def _subnet_order(self) -> list[str]:
+        """Subnets in kill-chain order, so the fleet view can stack them the way
+        the intrusion travels: dmz -> corp -> app-tier -> data-tier."""
+        order: list[str] = []
+        for agent in self.fleet.agents:
+            if agent.subnet not in order:
+                order.append(agent.subnet)
+        preferred = ["dmz", "corp", "app-tier", "data-tier"]
+        return sorted(order, key=lambda s: preferred.index(s) if s in preferred else len(preferred))
 
     def close(self) -> None:
         self._c2.close()

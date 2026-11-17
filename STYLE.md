@@ -57,3 +57,11 @@ everywhere.
    global instance) so firing steps out of order is meaningful (fire the beacon,
    then disable logging, then fire it again). A single global fits a one-user
    demo; per-session state is the move if it ever goes multi-user.
+8. **The console's home is the fleet.** The default view renders every simulated
+   VM as a tile grouped by subnet (trust boundary), expandable to its per-host
+   telemetry; a host breached with no alarm is flagged `silent`. Per-agent state
+   is computed in `live.LiveCampaign.fleet_agents` and carried in `/live/state`.
+9. **Visual direction: a calm holographic operations surface** (deep field, a
+   faint grid, thin cyan structure that frames live hosts, severity kept as
+   green/amber/red). Motion only answers an action (a tile opening) or marks
+   danger (a silent breach breathing); `prefers-reduced-motion` turns it off.
