@@ -1,0 +1,9 @@
+.git
+notes/
+report/
+docs/
+tests/
+**/__pycache__/
+*.pyc
+420_proposal.pdf
+.pytest_cache/

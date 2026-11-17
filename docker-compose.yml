@@ -1,0 +1,23 @@
+# The control plane owns a simulated fleet whose size is set by EDA_FLEET_SIZE.
+# Agents are simulated in-process, so one container stands in for a 50-host
+# company; running each agent as its own container is the next iteration.
+#
+# The container is hardened the way the fleet's own hosts should be (Day 14/15):
+# non-root, read-only root filesystem, all Linux capabilities dropped, and no
+# privilege escalation.
+services:
+  control-plane:
+    build: .
+    image: eda-control-plane:0.1.0
+    ports:
+      - "8000:8000"
+    environment:
+      EDA_FLEET_SIZE: "50"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
