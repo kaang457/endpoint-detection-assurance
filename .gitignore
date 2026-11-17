@@ -22,3 +22,7 @@ Thumbs.db
 
 # Instructor lecture notes — kept local, not redistributed publicly
 notes/
+
+# Third-party design reference (aura.build template), kept local
+Cyber Security Dashboard UI Template*/
+Cyber Security Dashboard UI Template*.html
