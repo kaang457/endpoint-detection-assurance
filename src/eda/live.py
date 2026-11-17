@@ -18,7 +18,7 @@ from .canary_net import CanaryListener
 from .fleet import Fleet
 from .harness import _run_benign_baseline
 from .scenarios import AttackStep, StepContext, build_killchain
-from .scoring import Scoreboard, StepResult
+from .scoring import Scoreboard, StepResult, capability_matrix
 
 
 class LiveCampaign:
@@ -81,6 +81,7 @@ class LiveCampaign:
                 "canary_probe": db.canary.probe(),
             },
             "applog_blindness_h3": board.h3_applog_blindness(),
+            "capability_matrix_h1": capability_matrix([s for _a, s in self.ordered]),
         }
 
     def close(self) -> None:
