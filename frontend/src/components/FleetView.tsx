@@ -8,6 +8,12 @@ interface Props {
   onOpen: (agent: Agent) => void;
 }
 
+function load(pct: number): string | undefined {
+  if (pct >= 85) return "hot";
+  if (pct >= 70) return "warn";
+  return undefined;
+}
+
 function Tile({ agent, onOpen }: { agent: Agent; onOpen: (a: Agent) => void }) {
   const live = agent.status === "silent";
   return (
@@ -17,15 +23,28 @@ function Tile({ agent, onOpen }: { agent: Agent; onOpen: (a: Agent) => void }) {
       onClick={() => onOpen(agent)}
       aria-label={`${agent.id}, ${STATUS[agent.status]}`}
     >
-      <span className="vm-dot" />
-      <span className="vm-id">
-        <b>{agent.id}</b>
-        <small>
-          {agent.role} · {agent.workload}
-        </small>
+      <span className="vm-head">
+        <span className="vm-dot" />
+        <span className="vm-id">
+          <b>{agent.id}</b>
+          <small>
+            {agent.role} · {agent.workload}
+          </small>
+        </span>
+        {agent.status !== "nominal" && <span className="vm-state">{STATUS[agent.status]}</span>}
+        <ChevronRight className="vm-chev" size={14} />
       </span>
-      {agent.status !== "nominal" && <span className="vm-state">{STATUS[agent.status]}</span>}
-      <ChevronRight className="vm-chev" size={14} />
+      <span className="vm-stats">
+        <span className="vm-ip mono">{agent.ip}</span>
+        <span className="umeter-k">cpu</span>
+        <span className="umeter" title={`CPU ${agent.cpu_pct}%`}>
+          <i style={{ width: `${agent.cpu_pct}%` }} data-load={load(agent.cpu_pct)} />
+        </span>
+        <span className="umeter-k">mem</span>
+        <span className="umeter" title={`Memory ${agent.mem_pct}%`}>
+          <i style={{ width: `${agent.mem_pct}%` }} />
+        </span>
+      </span>
     </button>
   );
 }

@@ -1,6 +1,12 @@
 import { Drawer } from "vaul";
 import type { Agent } from "../api";
-import { OUTCOME, STATUS } from "../labels";
+import { OUTCOME, STATUS, uptime } from "../labels";
+
+function load(pct: number): string | undefined {
+  if (pct >= 85) return "hot";
+  if (pct >= 70) return "warn";
+  return undefined;
+}
 
 interface Props {
   agent: Agent | null;
@@ -29,11 +35,75 @@ export function VmDrawer({ agent, open, onOpenChange }: Props) {
                   <div className="meta">
                     <span className="hl">{agent.role}</span>
                     <span>{agent.workload}</span>
-                    {agent.sensors.map((s) => (
-                      <span key={s}>{s}</span>
-                    ))}
+                    <span className="pw">
+                      <i />
+                      {agent.power}
+                    </span>
                   </div>
                 </Drawer.Description>
+
+                <div className="sec-label">Virtual machine</div>
+                <div className="vm-panel">
+                  <div className="spec">
+                    <span className="k">Guest OS</span>
+                    <span className="v">{agent.os}</span>
+                  </div>
+                  <div className="spec">
+                    <span className="k">Address</span>
+                    <span className="v">{agent.ip}</span>
+                  </div>
+                  <div className="spec">
+                    <span className="k">vCPU</span>
+                    <span className="v">{agent.vcpu}</span>
+                  </div>
+                  <div className="spec">
+                    <span className="k">Memory</span>
+                    <span className="v">{agent.mem_gb} GB</span>
+                  </div>
+                  <div className="spec">
+                    <span className="k">Disk</span>
+                    <span className="v">{agent.disk_gb} GB</span>
+                  </div>
+                  <div className="spec">
+                    <span className="k">Uptime</span>
+                    <span className="v">{uptime(agent.uptime_s)}</span>
+                  </div>
+                  <div className="spec">
+                    <span className="k">Pool</span>
+                    <span className="v">{agent.pool}</span>
+                  </div>
+                  <div className="spec">
+                    <span className="k">Subnet</span>
+                    <span className="v">{agent.subnet}</span>
+                  </div>
+                </div>
+                <div className="gauges">
+                  <div className="gauge2">
+                    <div className="lab">
+                      <span>CPU</span>
+                      <b>{agent.cpu_pct}%</b>
+                    </div>
+                    <div className="bar">
+                      <i style={{ width: `${agent.cpu_pct}%` }} data-load={load(agent.cpu_pct)} />
+                    </div>
+                  </div>
+                  <div className="gauge2">
+                    <div className="lab">
+                      <span>Memory</span>
+                      <b>{agent.mem_pct}%</b>
+                    </div>
+                    <div className="bar">
+                      <i style={{ width: `${agent.mem_pct}%` }} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="sec-label">Endpoint detection</div>
+                <div className="meta">
+                  {agent.sensors.map((s) => (
+                    <span key={s}>{s}</span>
+                  ))}
+                </div>
                 <div className="counts">
                   <span>
                     events <b>{agent.events}</b>

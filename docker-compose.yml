@@ -12,6 +12,8 @@ services:
     ports:
       - "8000:8000"
     environment:
+      # the target the tool measures; swap for another FleetSource backend
+      EDA_SOURCE: "simulated-citrix"
       EDA_FLEET_SIZE: "50"
     read_only: true
     tmpfs:

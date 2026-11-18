@@ -65,3 +65,13 @@ everywhere.
    faint grid, thin cyan structure that frames live hosts, severity kept as
    green/amber/red). Motion only answers an action (a tile opening) or marks
    danger (a silent breach breathing); `prefers-reduced-motion` turns it off.
+10. **The tool is separate from the target it measures.** Hosts come from a
+    `FleetSource` (`source.py`), not from the tool: `SimulatedCitrixSource`
+    presents a VM-management-style inventory (OS, IP, vHW, power, load), and
+    `EDA_SOURCE` selects the backend. The tool (sensors/detection/scoring/
+    console) only consumes it, so a different fleet is a drop-in. The seam is
+    deliberate, not speculative — it is the whole "a reusable security tool"
+    framing.
+11. **Docker is the primary run path.** A multi-stage image builds the React UI
+    (node stage) and serves it with the API (python stage), so `docker compose
+    up --build` needs no host toolchain.

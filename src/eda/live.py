@@ -17,6 +17,7 @@ from .agent import Agent
 from .canary_net import CanaryListener
 from .fleet import Fleet
 from .harness import _run_benign_baseline
+from .source import HostSpec, source_from_env
 from .scenarios import AttackStep, StepContext, build_killchain
 from .scoring import Scoreboard, StepResult, capability_matrix
 
@@ -39,11 +40,22 @@ def _agent_status(steps: list[dict]) -> str:
     return "targeted"
 
 
+def _host_load(spec: HostSpec, events: int) -> tuple[int, int]:
+    """A plausible CPU/memory reading for the management view. Idle hosts hum
+    along; a host the attack has been busy on (more recorded events) shows the
+    elevated load a real console would surface. Deterministic, so the panel is
+    stable across reads."""
+    seed = sum(ord(c) for c in spec.id)
+    cpu = min(95, 3 + seed % 7 + events * 5)
+    mem = min(92, 28 + seed % 22 + events * 2)
+    return cpu, mem
+
+
 class LiveCampaign:
     """One running fleet plus the ordered kill chain, fired on demand."""
 
     def __init__(self, composition: dict[str, int] | None = None) -> None:
-        self.fleet = Fleet.build(composition)
+        self.fleet = Fleet.from_source(source_from_env(composition))
         self.false_alarms, self.benign_events = _run_benign_baseline(self.fleet)
         # One C2 endpoint stays open for the whole session; the beacon steps open
         # real sockets to it, and its receive count proves data left the host.
@@ -86,6 +98,7 @@ class LiveCampaign:
         )
         db = self.fleet.first("db")
         return {
+            "source": self.fleet.source_name,
             "fleet": self._fleet_summary(),
             "steps": [self._step_view(sid) for sid, _ in self._ordered_ids()],
             "tally": board.tally(),
@@ -115,17 +128,30 @@ class LiveCampaign:
         agents = []
         for agent in self.fleet.agents:
             steps = [self._step_view(sid) for sid in targeted.get(agent.id, [])]
+            spec = agent.spec
+            cpu, mem = _host_load(spec, len(agent.node.events))
             agents.append({
                 "id": agent.id,
                 "role": agent.role.name,
                 "subnet": agent.subnet,
                 "workload": agent.workload,
-                "sensors": list(agent.role.sensors),
+                "sensors": list(agent.spec.sensors),
                 "events": len(agent.node.events),
                 "alerts": len(agent.node.alerts),
                 "on_path": bool(steps),
                 "status": _agent_status(steps),
                 "steps": steps,
+                # management-plane facts, the way a VM console presents a host
+                "os": spec.os,
+                "ip": spec.ip,
+                "vcpu": spec.vcpu,
+                "mem_gb": spec.mem_gb,
+                "disk_gb": spec.disk_gb,
+                "power": spec.power,
+                "uptime_s": spec.uptime_s,
+                "pool": spec.pool,
+                "cpu_pct": cpu,
+                "mem_pct": mem,
             })
         return agents
 

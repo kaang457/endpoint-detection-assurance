@@ -40,9 +40,21 @@ export interface Agent {
   on_path: boolean;
   status: AgentStatus;
   steps: Step[];
+  // management-plane facts, the way a VM console presents a host
+  os: string;
+  ip: string;
+  vcpu: number;
+  mem_gb: number;
+  disk_gb: number;
+  power: string;
+  uptime_s: number;
+  pool: string;
+  cpu_pct: number;
+  mem_pct: number;
 }
 
 export interface State {
+  source: string;
   fleet: { size: number; by_role: Record<string, number> };
   subnets: string[];
   agents: Agent[];

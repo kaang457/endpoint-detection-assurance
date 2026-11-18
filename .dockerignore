@@ -7,3 +7,8 @@ tests/
 *.pyc
 420_proposal.pdf
 .pytest_cache/
+# the image rebuilds the UI from source; don't ship host artifacts
+frontend/node_modules/
+frontend/dist/
+src/eda/webui/
+*.md

@@ -31,3 +31,10 @@ export const EFFECT: Record<string, string> = {
 };
 
 export const code = (s: string) => s.split(" ")[0];
+
+export function uptime(seconds: number): string {
+  const d = Math.floor(seconds / 86400);
+  if (d > 0) return `${d}d`;
+  const h = Math.floor(seconds / 3600);
+  return `${h}h`;
+}

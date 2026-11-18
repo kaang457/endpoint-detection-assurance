@@ -48,33 +48,46 @@ kept, you can fire the database beacon (s12), see it **DETECTED**, disable
 logging (s11), and fire it again to watch the same action go **BLIND** — H2 by
 hand. `Ctrl/Cmd+K` opens a command palette.
 
+## The tool and the target
+
+The project is two layers with a seam between them. The **tool** is EDA itself —
+the sensors, detection rules, scoring, canary and the operator console. The
+**target** is the environment it measures: a `FleetSource` presenting a fleet of
+hosts the way a VM-management system (Citrix/vSphere-class) would — inventory,
+OS, addresses, virtual hardware, power and load. The simulated company fleet
+(`simulated-citrix`) is one source; a different backend is a drop-in behind the
+same interface, selected with `EDA_SOURCE`. The tool only *uses* the target, so
+it stays reusable against a different fleet.
+
 ## Run it
 
 ```bash
-# 1) Unit + integration tests (no extra services needed)
+# Containerized — the primary path. One image builds the React UI and serves it
+# with the API; nothing else to install. Hardened: non-root, read-only rootfs,
+# all caps dropped. EDA_SOURCE picks the target, EDA_FLEET_SIZE scales it.
+docker compose up --build        # -> http://localhost:8000
+
+# --- or run it locally ---
+
+# 1) Tests (no extra services needed)
 pip install -e ".[dev]"
-python -m pytest                 # 21 passed
+python -m pytest                 # 25 passed
 
 # 2) Build the web UI once (React + Vite; output lands in src/eda/webui)
 cd frontend && npm install && npm run build && cd ..
 
-# 3) Serve the control plane — one process serves the UI and the API
-uvicorn eda.controlplane:app --reload
+# 3) Serve — one process serves the UI and the API
+uvicorn eda.controlplane:app --reload   # -> http://localhost:8000
 # GET /                the operator console (fleet, attack chain, hypotheses)
-# GET /live/state      current campaign + per-host fleet state as JSON
+# GET /live/state      per-host fleet state + campaign as JSON
 # POST /live/fire/{id} fire one step   |  POST /live/reset  |  POST /live/fire-all
-# GET /report          the full non-interactive run as JSON
-# GET /report.html     the static dashboard
-# GET /catalog         the planted vulnerabilities (OWASP:2025 + ATT&CK + lecture)
+# GET /report.html     the static dashboard   |   GET /catalog   planted weaknesses
 
 # Frontend dev with hot reload (optional): proxies the API to :8000
 cd frontend && npm run dev       # http://localhost:5173
 
-# Headless measurement without a browser, and the static dashboard:
+# Headless measurement without a browser:
 python -m eda.harness --out report   # -> report/index.html + report.json
-
-# Containerized + scalable
-docker compose up --build        # EDA_FLEET_SIZE scales the fleet (default 50)
 ```
 
 ## How the hypotheses show up
@@ -100,8 +113,9 @@ src/eda/
   detection.py    detection rules + the engine that runs them (policy-as-code)
   node.py         one monitored host: sensors + rules + the event/alert record
   roles.py        roles, their sensor profiles, subnets and reachability
-  agent.py        one simulated machine = a node with a role
-  fleet.py        the ~50-host fleet and its sandbox
+  source.py       the tool/target seam: a FleetSource and the simulated fleet
+  agent.py        one monitored host = a node built from a host spec
+  fleet.py        the fleet built from a source, and its sandbox
   scenarios.py    the kill chain: real steps tagged with ATT&CK / OWASP / lecture
   scoring.py      visibility-vs-detection scoring (the measurement)
   report.py       report.json + the static dashboard

@@ -46,7 +46,11 @@ export function Sidebar({ state, catalogCount, open, onNavigate, onOpenPalette }
       <div className="side-sp" />
       <div className="fleetbox">
         <div className="r">
-          <span>Fleet</span>
+          <span>Target</span>
+          <b>{state.source}</b>
+        </div>
+        <div className="r">
+          <span>Hosts</span>
           <b>{state.fleet.size}</b>
         </div>
         <div className="r">
