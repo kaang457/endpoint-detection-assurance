@@ -87,8 +87,8 @@ export function ChainView({ state, sel, onSelect, onFire }: Props) {
         <div>
           <h2>Attack chain</h2>
           <p>
-            Web tier → phished laptop → database. Select a step, fire it, read the verdict. Firing s11
-            blinds the database EDR, so fire s12 again after to watch a detected action go dark.
+            <b style={{ color: "var(--text)", fontWeight: 600 }}>{state.scenario.name}.</b>{" "}
+            {state.scenario.description} Select a step, fire it, read the verdict.
           </p>
         </div>
       </div>

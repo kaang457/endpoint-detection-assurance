@@ -75,3 +75,9 @@ everywhere.
 11. **Docker is the primary run path.** A multi-stage image builds the React UI
     (node stage) and serves it with the API (python stage), so `docker compose
     up --build` needs no host toolchain.
+12. **Scenarios are a registry of campaign builders** (`scenarios.py`,
+    `SCENARIOS`), each a function `(fleet, ctx, rng) -> Campaign`. An unseeded
+    build is deterministic (first host of each role — for the harness and
+    tests); a seeded one samples hosts and, for `random`, the scenario too, so
+    runs vary. The control plane's first load is deterministic; every reset
+    re-rolls the seed.

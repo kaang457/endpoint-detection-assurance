@@ -85,9 +85,24 @@ export default function App() {
   const reset = useCallback(async () => {
     setBusy(true);
     try {
-      setState(await api.reset());
+      const next = await api.reset();
+      setState(next);
+      setSel(next.steps[0]?.id ?? null);
       setDrawer(null);
-      toast("Fleet reset", { description: "Fresh hosts, nothing fired." });
+      toast("Fleet reset", { description: `Scenario: ${next.scenario.name}. Fresh hosts, nothing fired.` });
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  const switchScenario = useCallback(async (id: string) => {
+    setBusy(true);
+    try {
+      const next = await api.scenario(id);
+      setState(next);
+      setSel(next.steps[0]?.id ?? null);
+      setDrawer(null);
+      toast(`Scenario: ${next.scenario.name}`, { description: next.scenario.description });
     } finally {
       setBusy(false);
     }
@@ -116,7 +131,14 @@ export default function App() {
           onOpenPalette={() => setPaletteOpen(true)}
         />
         <main className="main">
-          <Topbar state={state} busy={busy} onRun={runAll} onReset={reset} onMenu={() => setMenuOpen((o) => !o)} />
+          <Topbar
+            state={state}
+            busy={busy}
+            onRun={runAll}
+            onReset={reset}
+            onMenu={() => setMenuOpen((o) => !o)}
+            onScenario={switchScenario}
+          />
           <Tabs.Content value="fleet">
             <FleetView state={state} onOpen={setDrawer} />
           </Tabs.Content>
@@ -141,6 +163,7 @@ export default function App() {
         onFire={fire}
         onRunAll={runAll}
         onReset={reset}
+        onScenario={switchScenario}
       />
     </>
   );

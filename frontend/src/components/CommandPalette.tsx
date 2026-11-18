@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { Dialog } from "@base-ui-components/react/dialog";
 import { Command } from "cmdk";
-import { LayoutGrid, ListTree, FlaskConical, Shield, Play, RotateCcw, Crosshair } from "lucide-react";
+import { LayoutGrid, ListTree, FlaskConical, Shield, Play, RotateCcw, Crosshair, Clapperboard, Shuffle } from "lucide-react";
 import type { State } from "../api";
 import type { ViewKey } from "../App";
 import { OUTCOME } from "../labels";
@@ -14,6 +14,7 @@ interface Props {
   onFire: (id: string) => void;
   onRunAll: () => void;
   onReset: () => void;
+  onScenario: (id: string) => void;
 }
 
 const srOnly: CSSProperties = {
@@ -24,7 +25,7 @@ const srOnly: CSSProperties = {
   clip: "rect(0 0 0 0)",
 };
 
-export function CommandPalette({ open, onOpenChange, state, onView, onFire, onRunAll, onReset }: Props) {
+export function CommandPalette({ open, onOpenChange, state, onView, onFire, onRunAll, onReset, onScenario }: Props) {
   const run = (fn: () => void) => {
     onOpenChange(false);
     fn();
@@ -60,6 +61,22 @@ export function CommandPalette({ open, onOpenChange, state, onView, onFire, onRu
                 <Command.Item onSelect={() => run(onReset)}>
                   <RotateCcw size={15} /> Reset the fleet
                 </Command.Item>
+              </Command.Group>
+              <Command.Group heading="Scenario">
+                <Command.Item value="scenario random surprise" onSelect={() => run(() => onScenario("random"))}>
+                  <Shuffle size={15} /> Random scenario
+                </Command.Item>
+                {state.scenarios.map((s) => (
+                  <Command.Item
+                    key={s.id}
+                    value={`scenario ${s.id} ${s.name}`}
+                    onSelect={() => run(() => onScenario(s.id))}
+                  >
+                    <Clapperboard size={15} />
+                    {s.name}
+                    {s.id === state.scenario.id && <span className="mono">current</span>}
+                  </Command.Item>
+                ))}
               </Command.Group>
               <Command.Group heading="Fire a step">
                 {state.steps.map((s) => (

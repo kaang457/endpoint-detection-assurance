@@ -104,6 +104,24 @@ button { font: inherit; cursor: pointer; }
 .acts { display: flex; gap: 8px; }
 .menu-btn { display: none; }
 
+/* scenario picker */
+.spick { position: relative; }
+.spick-btn { display: flex; align-items: center; gap: 9px; background: var(--surface-2);
+  border: 1px solid var(--border-2); border-radius: var(--r); padding: 6px 11px; color: var(--text); font-weight: 500; }
+.spick-btn:hover { border-color: var(--cyan-ln); }
+.spick-lab { font-size: .68rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.spick-name { font-size: .86rem; }
+.spick-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 40; width: 330px;
+  background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r2); padding: 6px;
+  box-shadow: 0 20px 50px -20px rgba(0, 0, 0, .7); }
+.spick-item { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; background: none;
+  border: 0; border-radius: var(--r); padding: 9px 10px; color: var(--text); cursor: pointer; }
+.spick-item:hover { background: var(--surface-2); }
+.spick-item.on { background: var(--cyan-bg); }
+.spick-item .nm { font-weight: 600; font-size: .88rem; display: flex; align-items: center; gap: 7px; }
+.spick-item .ds { font-size: .78rem; color: var(--muted); }
+.spick-item.rnd { border-top: 1px solid var(--line); margin-top: 4px; }
+
 .view { padding: 18px 20px 64px; animation: fade .24s ease; }
 @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .vhead { margin: 0 0 16px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }

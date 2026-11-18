@@ -53,8 +53,16 @@ export interface Agent {
   mem_pct: number;
 }
 
+export interface Scenario {
+  id: string;
+  name: string;
+  description: string;
+}
+
 export interface State {
   source: string;
+  scenario: Scenario;
+  scenarios: Scenario[];
   fleet: { size: number; by_role: Record<string, number> };
   subnets: string[];
   agents: Agent[];
@@ -94,5 +102,6 @@ export const api = {
   fire: (id: string) => call<State>(`/live/fire/${id}`, "POST"),
   fireAll: () => call<State>("/live/fire-all", "POST"),
   reset: () => call<State>("/live/reset", "POST"),
+  scenario: (id: string) => call<State>(`/live/scenario/${id}`, "POST"),
   catalog: () => call<Vulnerability[]>("/catalog"),
 };

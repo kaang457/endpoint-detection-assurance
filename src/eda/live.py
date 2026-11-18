@@ -13,12 +13,14 @@ beacon, see DETECTED; disable logging; fire the same beacon, see BLIND.
 
 from __future__ import annotations
 
+from random import Random
+
 from .agent import Agent
 from .canary_net import CanaryListener
 from .fleet import Fleet
 from .harness import _run_benign_baseline
 from .source import HostSpec, source_from_env
-from .scenarios import AttackStep, StepContext, build_killchain
+from .scenarios import DEFAULT_SCENARIO, AttackStep, StepContext, choose_scenario, scenario_catalog
 from .scoring import Scoreboard, StepResult, capability_matrix
 
 
@@ -54,7 +56,12 @@ def _host_load(spec: HostSpec, events: int) -> tuple[int, int]:
 class LiveCampaign:
     """One running fleet plus the ordered kill chain, fired on demand."""
 
-    def __init__(self, composition: dict[str, int] | None = None) -> None:
+    def __init__(
+        self,
+        composition: dict[str, int] | None = None,
+        scenario: str = DEFAULT_SCENARIO,
+        seed: int | None = None,
+    ) -> None:
         self.fleet = Fleet.from_source(source_from_env(composition))
         self.false_alarms, self.benign_events = _run_benign_baseline(self.fleet)
         # One C2 endpoint stays open for the whole session; the beacon steps open
@@ -62,7 +69,12 @@ class LiveCampaign:
         self._c2 = CanaryListener()
         self._c2.__enter__()
         self.ctx = StepContext(self.fleet.workspace, self._c2.host, self._c2.port)
-        self.ordered = build_killchain(self.fleet, self.ctx)
+        # A seed makes a run vary — which scenario (when "random") and which host
+        # of each role it lands on — while an unseeded run stays deterministic
+        # for the harness and tests.
+        rng = Random(seed) if seed is not None else None
+        self.scenario = choose_scenario(scenario, rng)
+        self.ordered = self.scenario.build(self.fleet, self.ctx, rng)
         self._index: dict[str, tuple[Agent, AttackStep]] = {
             step.id: (agent, step) for agent, step in self.ordered
         }
@@ -99,6 +111,12 @@ class LiveCampaign:
         db = self.fleet.first("db")
         return {
             "source": self.fleet.source_name,
+            "scenario": {
+                "id": self.scenario.id,
+                "name": self.scenario.name,
+                "description": self.scenario.description,
+            },
+            "scenarios": scenario_catalog(),
             "fleet": self._fleet_summary(),
             "steps": [self._step_view(sid) for sid, _ in self._ordered_ids()],
             "tally": board.tally(),

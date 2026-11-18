@@ -44,9 +44,26 @@ the **fleet** — every simulated VM as a tile grouped by the trust boundary it
 sits behind, expandable to what the sensors on it saw. The kill chain lights a
 path from the edge inward, and a host breached with no alarm is flagged
 `silent`. An *Attack chain* view fires steps one at a time; because state is
-kept, you can fire the database beacon (s12), see it **DETECTED**, disable
-logging (s11), and fire it again to watch the same action go **BLIND** — H2 by
-hand. `Ctrl/Cmd+K` opens a command palette.
+kept, you can fire the database beacon, see it **DETECTED**, disable logging,
+and fire it again to watch the same action go **BLIND** — H2 by hand.
+`Ctrl/Cmd+K` opens a command palette.
+
+### Scenarios
+
+The run is not one fixed story. A scenario picker (and `EDA_SCENARIO`) chooses
+which intrusion plays out, and each lands on different hosts and produces a
+different outcome mix:
+
+| Scenario | Shape |
+|---|---|
+| **Uber-style breach** | web → phished laptop → database, ending in a silent exfil after the EDR is blinded (all three outcomes, both halves of H1) |
+| **Phished laptop** | a workstation macro reaches the domain controller; osquery's blind spots and an app-tier exfil go unseen |
+| **Web injection** | a well-watched edge host — almost everything caught, nothing blind |
+| **DDoS smokescreen** | an alert storm hides one quiet exfil from an unmonitored app host |
+
+"Random" picks one at random on a fresh fleet, and every reset re-rolls which
+hosts are hit, so two runs rarely look the same. The default first load stays
+deterministic (`uber-breach`, first hosts) so the canonical story shows.
 
 ## The tool and the target
 

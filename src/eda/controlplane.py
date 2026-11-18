@@ -17,6 +17,7 @@ has not been built, `/` says so instead of 500-ing.
 from __future__ import annotations
 
 import os
+import secrets
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -29,6 +30,7 @@ from .harness import run
 from .live import LiveCampaign
 from .report import render_html
 from .roles import default_composition
+from .scenarios import DEFAULT_SCENARIO
 
 app = FastAPI(title="Endpoint Detection Assurance")
 
@@ -37,6 +39,11 @@ _FIXED_ROLES = {k: v for k, v in default_composition().items() if k != "workstat
 _MIN_WORKSTATIONS = 1
 _last_report: dict | None = None
 _live: LiveCampaign | None = None
+# The scenario the live campaign runs; starts from EDA_SCENARIO, changes via the
+# API. The first load is deterministic so the canonical story shows; every reset
+# after re-rolls the seed, so hosts (and a "random" scenario) vary per run.
+_scenario: str = os.environ.get("EDA_SCENARIO", DEFAULT_SCENARIO)
+_first_build = True
 
 
 def _composition() -> dict[str, int]:
@@ -55,18 +62,30 @@ def _run_once() -> dict:
     return _last_report
 
 
+def _build_live(scenario: str) -> LiveCampaign:
+    """First build is deterministic (seed=None) so the canonical story shows;
+    later builds re-roll the seed so the run varies."""
+    global _first_build
+    seed = None if _first_build else secrets.randbelow(1_000_000)
+    _first_build = False
+    return LiveCampaign(_composition(), scenario=scenario, seed=seed)
+
+
 def _live_campaign() -> LiveCampaign:
     global _live
     if _live is None:
-        _live = LiveCampaign(_composition())
+        _live = _build_live(_scenario)
     return _live
 
 
-def _reset_live() -> LiveCampaign:
-    global _live
+def _reset_live(scenario: str | None = None) -> LiveCampaign:
+    global _live, _scenario
+    target = scenario if scenario is not None else _scenario
+    new = _build_live(target)  # may raise before we touch any state
+    _scenario = target
     if _live is not None:
         _live.close()
-    _live = LiveCampaign(_composition())
+    _live = new
     return _live
 
 
@@ -100,6 +119,16 @@ def live_state() -> JSONResponse:
 @app.post("/live/reset")
 def live_reset() -> JSONResponse:
     return JSONResponse(_reset_live().state())
+
+
+@app.post("/live/scenario/{scenario_id}")
+def live_scenario(scenario_id: str) -> JSONResponse:
+    """Switch the campaign to another scenario (or "random") and re-roll."""
+    try:
+        campaign = _reset_live(scenario_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"no scenario {scenario_id!r}")
+    return JSONResponse(campaign.state())
 
 
 @app.post("/live/fire/{step_id}")

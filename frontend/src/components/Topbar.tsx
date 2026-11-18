@@ -1,6 +1,7 @@
 import NumberFlow from "@number-flow/react";
 import { Menu, Play, RotateCcw } from "lucide-react";
 import type { State } from "../api";
+import { ScenarioPicker } from "./ScenarioPicker";
 
 interface Props {
   state: State;
@@ -8,6 +9,7 @@ interface Props {
   onRun: () => void;
   onReset: () => void;
   onMenu: () => void;
+  onScenario: (id: string) => void;
 }
 
 function Stat({ sev, value, label }: { sev?: string; value: number; label: string }) {
@@ -22,12 +24,13 @@ function Stat({ sev, value, label }: { sev?: string; value: number; label: strin
   );
 }
 
-export function Topbar({ state, busy, onRun, onReset, onMenu }: Props) {
+export function Topbar({ state, busy, onRun, onReset, onMenu, onScenario }: Props) {
   return (
     <div className="topbar">
       <button className="btn sm menu-btn" aria-label="Toggle navigation" onClick={onMenu}>
         <Menu size={16} />
       </button>
+      <ScenarioPicker current={state.scenario} scenarios={state.scenarios} onPick={onScenario} />
       <div className="posture">
         <Stat sev="detected" value={state.tally.detected} label="detected" />
         <Stat sev="visible_only" value={state.tally.visible_only} label="observed" />

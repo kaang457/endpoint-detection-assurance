@@ -61,8 +61,8 @@ export function FleetView({ state, onOpen }: Props) {
         <div>
           <h2>Fleet</h2>
           <p>
-            Fifty simulated hosts, grouped by the trust boundary they sit behind. The kill chain lights a
-            path from the edge inward; a host breached with no alarm breathes red.
+            <b style={{ color: "var(--text)", fontWeight: 600 }}>{state.scenario.name}.</b>{" "}
+            {state.scenario.description}
           </p>
         </div>
         <div className="vsum">
