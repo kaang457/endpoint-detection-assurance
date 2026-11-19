@@ -60,6 +60,7 @@ different outcome mix:
 | **Phished laptop** | a workstation macro reaches the domain controller; osquery's blind spots and an app-tier exfil go unseen |
 | **Web injection** | a well-watched edge host — almost everything caught, nothing blind |
 | **DDoS smokescreen** | an alert storm hides one quiet exfil from an unmonitored app host |
+| **AI agent hijack** | a prompt-injected AI agent smuggles a stolen secret out inside a trusted call to its LLM provider — seen, not detected |
 
 "Random" picks one at random on a fresh fleet, and every reset re-rolls which
 hosts are hit, so two runs rarely look the same. The default first load stays

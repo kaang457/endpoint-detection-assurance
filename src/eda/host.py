@@ -60,15 +60,18 @@ def read_file(path: str | Path, actor: str) -> Observation:
     )
 
 
-def connect(host: str, port: int, payload: bytes, actor: str) -> Observation:
+def connect(host: str, port: int, payload: bytes, actor: str, label: str | None = None) -> Observation:
     """Open a real TCP connection to an endpoint (the canary listener standing in
-    for an attacker's C2) and send bytes. Models exfiltration."""
+    for an attacker's C2 or an external service) and send bytes. Models
+    exfiltration. `label` names the destination the sensor records when the real
+    socket is a stand-in — e.g. exfil smuggled inside a call to an allowlisted
+    LLM provider still *connects* to the canary, but is seen as `llm-gw:443`."""
     with socket.create_connection((host, port), timeout=5) as sock:
         sock.sendall(payload)
     return Observation(
         kind=EventKind.NETWORK_CONNECT,
         actor=actor,
-        target=f"{host}:{port}",
+        target=label or f"{host}:{port}",
         detail={"bytes_sent": str(len(payload))},
     )
 

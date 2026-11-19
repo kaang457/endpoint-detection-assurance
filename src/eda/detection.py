@@ -20,7 +20,10 @@ Rule = Callable[[Event], Alert | None]
 
 SHELL_EXES = {"sh", "bash", "cmd", "powershell", "pwsh", "dash", "zsh"}
 SECRET_DIR = "secrets"
-EGRESS_ALLOWLIST = {"db:5432"}
+# Destinations the org allows outbound. The LLM provider is here because the
+# AI-agent hosts talk to it constantly — which is exactly why exfil smuggled
+# through that channel does not trip the egress rule (seen, but not detected).
+EGRESS_ALLOWLIST = {"db:5432", "llm-gw:443"}
 
 
 def _rule_service_spawned_shell(event: Event) -> Alert | None:

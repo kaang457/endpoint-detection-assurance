@@ -14,6 +14,7 @@ _COMPOSITION = {
     "app": 2,
     "db": 1,
     "domain-controller": 1,
+    "ai-agent": 1,
     "jump": 1,
 }
 
@@ -50,3 +51,13 @@ def test_ddos_smokescreen_hides_one_silent_exfil_under_the_alerts():
 
 def test_random_resolves_to_a_real_scenario():
     assert _run("random")["scenario"]["id"] in SCENARIOS
+
+
+def test_ai_agent_exfil_over_the_model_channel_is_seen_but_not_detected():
+    # The headline gap: a stolen secret smuggled out inside an allowlisted call
+    # to the LLM provider is VISIBLE_ONLY (the EDR sees the connection), while a
+    # crude C2 beacon of the provider key is DETECTED. If both scored the same,
+    # the scenario would have nothing to say.
+    steps = {s["id"]: s for s in _run("ai-agent-hijack")["steps"]}
+    assert steps["a3"]["outcome"] == "visible_only"  # exfil over the model channel
+    assert steps["a5"]["outcome"] == "detected"       # plain C2 beacon

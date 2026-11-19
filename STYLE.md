@@ -81,3 +81,10 @@ everywhere.
     tests); a seeded one samples hosts and, for `random`, the scenario too, so
     runs vary. The control plane's first load is deterministic; every reset
     re-rolls the seed.
+13. **The AI agent is a pseudo-LLM, not a model call.** `brain.py` is rule-based
+    on purpose: we do not run a model, we simulate what an app that calls an
+    external LLM (and stores a provider API key on the host) does on the box —
+    real process/file/socket. The egress to the provider is labelled
+    `llm-gw:443` and allowlisted, so exfil smuggled through it is seen but not
+    detected. The `plan()` seam lets a real model-backed brain drop in later;
+    the measurement must stay deterministic, so it does not now.

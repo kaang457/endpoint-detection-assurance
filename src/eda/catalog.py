@@ -67,6 +67,16 @@ CATALOG: list[Vulnerability] = [
         "Workstations run only process-granularity osquery, so a credential "
         "file read that an EDR host detects is completely blind here (H1).",
     ),
+    Vulnerability(
+        "V8", "Exfiltration hidden in a trusted AI-model channel",
+        "LLM02 Sensitive Information Disclosure", "T1567 Exfiltration Over Web Service", "Day 3/15",
+        "ai-agent role + egress allowlist",
+        "AI-agent hosts egress to their LLM provider constantly, so that "
+        "destination is allowlisted. A hijacked agent smuggles a stolen secret "
+        "out inside a legitimate model call: the EDR sees the connection but no "
+        "rule fires (VISIBLE_ONLY). The agent also stores a provider API key "
+        "worth stealing in its own right.",
+    ),
 ]
 
 

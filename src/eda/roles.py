@@ -64,6 +64,14 @@ ROLES: dict[str, Role] = {
         sensors=("auditd",),
         note="bastion used to pivot between tiers",
     ),
+    "ai-agent": Role(
+        name="ai-agent",
+        workload="rag-gateway",
+        subnet="app-tier",
+        sensors=("edr", "applog"),
+        note="an LLM-backed service: holds a provider API key and egresses to "
+        "the model all day, so a hijacked agent can hide exfil in that channel",
+    ),
 }
 
 # Which subnet can open connections into which, i.e. where lateral movement is
@@ -77,12 +85,14 @@ REACHABILITY: dict[str, set[str]] = {
 
 
 def default_composition() -> dict[str, int]:
-    """A ~50-host company. Mostly workstations, a handful of servers, one DC."""
+    """A ~50-host company. Mostly workstations, a handful of servers, a pair of
+    AI-agent gateways, one DC."""
     return {
-        "workstation": 24,
+        "workstation": 22,
         "app": 12,
         "edge-web": 8,
         "db": 4,
+        "ai-agent": 2,
         "jump": 1,
         "domain-controller": 1,
     }

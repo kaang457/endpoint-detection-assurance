@@ -22,4 +22,10 @@ def test_catalog_covers_every_campaign_technique():
 
 
 def test_every_vulnerability_names_an_owasp_2025_category():
-    assert all(v.owasp_2025.startswith("A") for v in CATALOG)
+    # Two namespaces now: the web Top 10 (A01..A10) and, for the AI-agent host,
+    # the OWASP LLM Top 10 (LLM01..LLM10). Each entry must name one and carry a
+    # rank number after the prefix.
+    for v in CATALOG:
+        tag = v.owasp_2025
+        prefix = "LLM" if tag.startswith("LLM") else "A"
+        assert tag.startswith(prefix) and tag[len(prefix):][:1].isdigit()
